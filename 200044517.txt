@@ -1,0 +1,106 @@
+#include <iostream> 
+#include <fstream>
+#include <cctype>
+#include <string>
+using namespace std;
+
+enum CharClass { letter, digit, UNKNOWN, END };
+enum TokenType {
+    lit = 10, ident = 11, ass_op = 20,
+    add_op = 21, sub_op = 22, mult_op = 23,
+    div_op = 24, left_paren = 25, right_paren = 26, END_OF_FILE = -1
+};
+
+char nextChar;
+CharClass charClass;
+string lexeme;
+TokenType nextToken;
+ifstream inData;
+
+void addChar() {
+    lexeme += nextChar;
+}
+
+void getChar() {
+    if (inData.get(nextChar)) {
+        if (isalpha(nextChar)) charClass = letter;
+        else if (isdigit(nextChar)) charClass = digit;
+        else if (isspace(nextChar)) charClass = UNKNOWN;
+        else charClass = UNKNOWN;
+    }
+    else {
+        nextChar = '\0';  // Clear character
+        charClass = END;
+    }
+}
+
+void getNonBlank() {
+    while (isspace(nextChar)) getChar();
+}
+
+TokenType lookup(char ch) {
+    switch (ch) {
+    case '+': addChar(); return add_op;
+    case '-': addChar(); return sub_op;
+    case '*': addChar(); return mult_op;
+    case '/': addChar(); return div_op;
+    case '=': addChar(); return ass_op;
+    case '(': addChar(); return left_paren;
+    case ')': addChar(); return right_paren;
+    default: return END_OF_FILE;
+    }
+}
+
+TokenType lex() {
+    lexeme = "";
+    getNonBlank();
+
+    switch (charClass) {
+    case letter:
+        addChar();
+        getChar();
+        while (charClass == letter || charClass == digit) {
+            addChar();
+            getChar();
+        }
+        nextToken = ident;
+        break;
+
+    case digit:
+        addChar();
+        getChar();
+        while (charClass == digit) {
+            addChar();
+            getChar();
+        }
+        nextToken = lit;
+        break;
+
+    case UNKNOWN:
+        nextToken = lookup(nextChar);
+        getChar();
+        break;
+
+    case END:
+        lexeme = "EOF";
+        nextToken = END_OF_FILE;
+        break;
+    }
+
+    cout << "Next token is: " << nextToken << ", Next lexeme is: " << lexeme << endl;
+    return nextToken;
+}
+
+int main() {
+    inData.open("D:\\2.txt");
+    if (!inData) {
+        cerr << "Error opening file!" << endl;
+        return 1;
+    }
+
+    getChar();
+    while (lex() != END_OF_FILE);
+
+    inData.close();
+    return 0;
+}
